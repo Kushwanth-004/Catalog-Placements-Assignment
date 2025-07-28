@@ -1,5 +1,4 @@
-const fs = require('fs');
-const path = require('path');
+
 
 // Lagrange interpolation at x = 0 (constant term)
 function lagrangeInterpolation(points) {
@@ -26,6 +25,59 @@ function decodeBase(value, base) {
   if (typeof value !== 'string') value = String(value);
   if (typeof base !== 'string') base = String(base);
   return BigInt(parseInt(value, parseInt(base, 10)));
+}
+
+// Parse input JSON and decode all points
+function parseInput(filename) {
+  const json = JSON.parse(fs.readFileSync(filename, 'utf-8'));
+  const k = json.keys.k;
+  const points = [];
+  for (let key in json) {
+    if (key === 'keys') continue;
+    const x = parseInt(key);
+    const base = json[key].base;
+    const value = json[key].value;
+    const y = decodeBase(value, base);
+    points.push({ x, y });
+  }
+  return { k, points };
+}
+
+
+const fs = require('fs');
+const path = require('path');
+
+// Lagrange interpolation at x = 0 (constant term)
+function lagrangeInterpolation(points) {
+  let secret = 0n;
+  for (let i = 0; i < points.length; i++) {
+    let xi = BigInt(points[i].x);
+    let yi = BigInt(points[i].y);
+    let num = 1n, den = 1n;
+    for (let j = 0; j < points.length; j++) {
+      if (i !== j) {
+        let xj = BigInt(points[j].x);
+        num *= -xj;
+        den *= (xi - xj);
+      }
+    }
+    let li = num / den;
+    secret += yi * li;
+  }
+  return secret;
+}
+
+// Manual BigInt base conversion for large numbers
+function decodeBase(value, base) {
+  if (typeof value !== 'string') value = String(value);
+  if (typeof base !== 'string') base = String(base);
+  let result = 0n;
+  for (let i = 0; i < value.length; i++) {
+    let digit = value[i].toLowerCase();
+    let num = (digit >= '0' && digit <= '9') ? BigInt(digit) : BigInt(digit.charCodeAt(0) - 87);
+    result = result * BigInt(base) + num;
+  }
+  return result;
 }
 
 // Parse input JSON and decode all points
